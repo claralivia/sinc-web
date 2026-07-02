@@ -5,12 +5,14 @@ import NewTransaction from '../pages/NewTransaction.vue';
 import Transactions from '@/pages/Transactions.vue';
 import Admin from '@/pages/Admin.vue';
 import Login from '@/pages/Login.vue';
+import ResetPassword from '@/pages/ResetPassword.vue';
 import { useAuthStore } from '@/stores/auth';
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/login', component: Login },
+    { path: '/reset-password', component: ResetPassword },
     {
       path: '/',
       component: AppLayout,
