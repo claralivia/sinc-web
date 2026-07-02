@@ -30,8 +30,8 @@
       <div class="space-y-2">
         <label class="text-sm font-medium text-white/50">Categoria</label>
         <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          <button 
-            v-for="cat in categories" 
+          <button
+            v-for="cat in filteredCategories"
             :key="cat._id"
             @click="form.categoryId = cat._id"
             :class="form.categoryId === cat._id ? 'bg-blue-500 text-white' : 'bg-white/5 text-white/60'"
@@ -80,7 +80,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import api from '@/lib/api';
 import { useRouter } from 'vue-router';
 
@@ -97,25 +97,40 @@ const form = ref({
   paymentMethod: 'PIX'
 });
 
+const filteredCategories = computed(() => categories.value.filter((category) => category.type === form.value.type));
+
 const splitOptions = [
   { label: 'Só Meu', value: 'MINE' },
   { label: 'Só Dela', value: 'HERS' },
-  { label: 'Dividido 50/50', value: 'SHARED_50_50' }
+  { label: 'Dividido 50/50', value: 'SHARED_50_50' },
+  { label: 'Personalizado', value: 'SHARED_CUSTOM' }
 ];
 
 const paymentMethods = [
   { label: 'Pix', value: 'PIX' },
   { label: 'Cartão de Crédito', value: 'CREDIT_CARD' },
-  { label: 'Cartão de Débito', value: 'DEBIT' }
+  { label: 'Cartão de Débito', value: 'DEBIT' },
+  { label: 'Dinheiro', value: 'CASH' }
 ];
+
+function syncDefaultCategory() {
+  if (filteredCategories.value.some((category) => category._id === form.value.categoryId)) {
+    return;
+  }
+
+  form.value.categoryId = filteredCategories.value?.[0]?._id || '';
+}
+
+function parseAmountToCents(value: string) {
+  const normalized = String(value).replace(/\./g, '').replace(',', '.');
+  return Math.round(Number(normalized) * 100);
+}
 
 async function loadCategories() {
   try {
     const { data } = await api.get('/categories');
     categories.value = Array.isArray(data) ? data : (data?.data || []);
-    if (categories.value?.length && !form.value.categoryId) {
-      form.value.categoryId = categories.value[0]._id;
-    }
+    syncDefaultCategory();
   } catch (error) {
     console.error('Erro ao carregar categorias:', error);
   }
@@ -126,7 +141,7 @@ async function processarIA() {
   try {
     const { data } = await api.post('/ai-parse', { text: textoIA.value });
     if (data?.description) form.value.description = data.description;
-    if (data?.amount) form.value.amount = data.amount;
+    if (data?.amount) form.value.amount = String(data.amount);
     if (data?.type) form.value.type = data.type;
   } catch (error) {
     console.error('Erro ao processar IA:', error);
@@ -135,13 +150,18 @@ async function processarIA() {
 
 async function save() {
   try {
+    const amount = parseAmountToCents(form.value.amount);
+
+    if (!form.value.description || !amount || !form.value.categoryId) {
+      return;
+    }
+
     await api.post('/transactions', {
       description: form.value.description,
-      amount: Number(form.value.amount) * 100,
+      amount,
       type: form.value.type,
       date: new Date(),
       categoryId: form.value.categoryId,
-      paidBy: '64b0f9a2e4b0a1a2b3c4d5e7',
       splitType: form.value.splitType,
       paymentMethod: form.value.paymentMethod,
       isRecurring: false
@@ -154,6 +174,10 @@ async function save() {
 
 onMounted(() => {
   loadCategories();
+});
+
+watch(() => form.value.type, () => {
+  syncDefaultCategory();
 });
 </script>
 

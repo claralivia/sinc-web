@@ -47,7 +47,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import api from '@/lib/api';
 import GlassCard from '@/components/ui/GlassCard.vue';
 
@@ -104,7 +104,6 @@ async function fetchDashboard() {
   try {
     const { data } = await api.get('/dashboard', {
       params: {
-        userId: '123',
         startDate: dateParams.value.startDate,
         endDate: dateParams.value.endDate
       }
@@ -119,17 +118,19 @@ function previousMonth() {
   const newDate = new Date(currentDate.value);
   newDate.setMonth(newDate.getMonth() - 1);
   currentDate.value = newDate;
-  fetchDashboard();
 }
 
 function nextMonth() {
   const newDate = new Date(currentDate.value);
   newDate.setMonth(newDate.getMonth() + 1);
   currentDate.value = newDate;
-  fetchDashboard();
 }
 
 onMounted(() => {
+  fetchDashboard();
+});
+
+watch(currentDate, () => {
   fetchDashboard();
 });
 </script>

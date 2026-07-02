@@ -36,10 +36,42 @@
           </svg>
           <span class="text-[10px] mt-1 font-medium">Transações</span>
         </button>
+
+        <button
+          v-if="auth.isAdmin"
+          @click="$router.push('/admin')"
+          :class="$route.path === '/admin' ? 'text-blue-500' : 'text-white/50'"
+          class="flex flex-col items-center transition-colors"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m12 14a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+          </svg>
+          <span class="text-[10px] mt-1 font-medium">Admin</span>
+        </button>
+
+        <button
+          @click="logout"
+          class="flex flex-col items-center text-white/50 transition-colors"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H9m4 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+          </svg>
+          <span class="text-[10px] mt-1 font-medium">Sair</span>
+        </button>
       </div>
     </nav>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+
+const router = useRouter();
+const auth = useAuthStore();
+
+async function logout() {
+  await auth.logout();
+  router.push('/login');
+}
 </script>
