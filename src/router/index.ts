@@ -3,6 +3,7 @@ import AppLayout from '../layouts/AppLayout.vue';
 import Dashboard from '@/pages/Dashboard.vue';
 import NewTransaction from '../pages/NewTransaction.vue';
 import Transactions from '@/pages/Transactions.vue';
+import Goals from '@/pages/Goals.vue';
 import Admin from '@/pages/Admin.vue';
 import Login from '@/pages/Login.vue';
 import ResetPassword from '@/pages/ResetPassword.vue';
@@ -21,6 +22,7 @@ const router = createRouter({
         { path: '', component: Dashboard },
         { path: 'nova-transacao', component: NewTransaction },
         { path: 'transacoes', component: Transactions },
+        { path: 'metas', component: Goals },
         { path: 'admin', component: Admin, meta: { requiresAdmin: true } }
       ]
     }

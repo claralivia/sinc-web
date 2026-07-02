@@ -6,31 +6,16 @@
         <h1 class="text-3xl font-black mt-2">Nova senha</h1>
       </div>
 
-      <form class="space-y-4" @submit.prevent="handleReset">
-        <input
-          v-model="password"
-          type="password"
-          placeholder="nova senha"
-          class="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500"
-        >
+      <form class="space-y-5" @submit.prevent="handleReset">
+        <AppInput v-model="password" type="password" label="Nova senha" placeholder="••••••••" />
+        <AppInput v-model="confirmPassword" type="password" label="Confirme a senha" placeholder="••••••••" />
 
-        <input
-          v-model="confirmPassword"
-          type="password"
-          placeholder="confirme a senha"
-          class="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none focus:border-blue-500"
-        >
+        <p v-if="errorMessage" class="text-critical text-sm">{{ errorMessage }}</p>
+        <p v-if="successMessage" class="text-good text-sm">{{ successMessage }}</p>
 
-        <p v-if="errorMessage" class="text-red-400 text-sm">{{ errorMessage }}</p>
-        <p v-if="successMessage" class="text-green-400 text-sm">{{ successMessage }}</p>
-
-        <button
-          type="submit"
-          :disabled="loading"
-          class="w-full bg-blue-500 disabled:bg-blue-500/50 py-4 rounded-xl font-bold active:scale-95 transition-transform"
-        >
+        <AppButton type="submit" :loading="loading">
           {{ loading ? 'Salvando...' : 'Salvar nova senha' }}
-        </button>
+        </AppButton>
       </form>
     </section>
   </main>
@@ -40,6 +25,8 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { supabase } from '@/lib/supabase';
+import AppInput from '@/components/ui/AppInput.vue';
+import AppButton from '@/components/ui/AppButton.vue';
 
 const router = useRouter();
 

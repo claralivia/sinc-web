@@ -1,14 +1,17 @@
 <template>
-  <div class="min-h-screen bg-black text-white pb-24">
-    <main class="p-4">
+  <div class="min-h-screen bg-black text-white" style="padding-bottom: calc(6rem + env(safe-area-inset-bottom))">
+    <main class="p-4 max-w-md mx-auto">
       <router-view />
     </main>
 
-    <nav class="fixed bottom-0 w-full bg-glass-medium border-t border-white/10 backdrop-blur-apple z-50">
+    <nav
+      class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-glass-medium border-t border-x border-white/10 backdrop-blur-apple z-50 sm:rounded-t-3xl"
+      style="padding-bottom: env(safe-area-inset-bottom)"
+    >
       <div class="flex justify-around items-center h-20">
-        <button 
-          @click="$router.push('/')" 
-          :class="$route.path === '/' ? 'text-blue-500' : 'text-white/50'"
+        <button
+          @click="$router.push('/')"
+          :class="$route.path === '/' ? 'text-accent' : 'text-white/50'"
           class="flex flex-col items-center transition-colors"
         >
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -16,19 +19,10 @@
           </svg>
           <span class="text-[10px] mt-1 font-medium">Início</span>
         </button>
-        
-        <button 
-          @click="$router.push('/nova-transacao')" 
-          class="w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform -mt-10 border-4 border-black"
-        >
-          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-          </svg>
-        </button>
 
-        <button 
-          @click="$router.push('/transacoes')" 
-          :class="$route.path === '/transacoes' ? 'text-blue-500' : 'text-white/50'"
+        <button
+          @click="$router.push('/transacoes')"
+          :class="$route.path === '/transacoes' ? 'text-accent' : 'text-white/50'"
           class="flex flex-col items-center transition-colors"
         >
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,9 +32,29 @@
         </button>
 
         <button
+          @click="$router.push('/nova-transacao')"
+          class="w-14 h-14 bg-accent rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform -mt-10 border-4 border-black shrink-0"
+        >
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+        </button>
+
+        <button
+          @click="$router.push('/metas')"
+          :class="$route.path === '/metas' ? 'text-accent' : 'text-white/50'"
+          class="flex flex-col items-center transition-colors"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.5-3.5a9 9 0 11-15.9-5.6M21 3v4h-4"></path>
+          </svg>
+          <span class="text-[10px] mt-1 font-medium">Metas</span>
+        </button>
+
+        <button
           v-if="auth.isAdmin"
           @click="$router.push('/admin')"
-          :class="$route.path === '/admin' ? 'text-blue-500' : 'text-white/50'"
+          :class="$route.path === '/admin' ? 'text-accent' : 'text-white/50'"
           class="flex flex-col items-center transition-colors"
         >
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
