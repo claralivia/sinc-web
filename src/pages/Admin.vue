@@ -137,9 +137,14 @@
     <section class="space-y-4">
       <h2 class="text-lg font-bold">Usuários</h2>
       <article v-for="user in users" :key="user._id" class="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
-        <div>
-          <p class="font-bold">{{ user.name }}</p>
-          <p class="text-xs text-white/50">{{ user.email }}</p>
+        <div class="flex items-center justify-between gap-2">
+          <div class="min-w-0">
+            <p class="font-bold truncate">{{ user.name }}</p>
+            <p class="text-xs text-white/50 truncate">{{ user.email }}</p>
+          </div>
+          <span v-if="householdLabel(user)" class="shrink-0 text-xs text-accent font-medium bg-accent/10 px-2 py-1 rounded-full">
+            {{ householdLabel(user) }}
+          </span>
         </div>
         <div class="flex gap-2 overflow-x-auto">
           <button
@@ -152,7 +157,54 @@
             {{ role }}
           </button>
         </div>
+
+        <div v-if="user.role === 'ADMIN'" class="space-y-1.5 pt-1 border-t border-white/10">
+          <label class="text-xs font-semibold text-white/40 uppercase tracking-wide">Cadastra como (subusuário)</label>
+          <div class="flex gap-2 overflow-x-auto pb-1">
+            <button
+              @click="updateManagedUser(user, '')"
+              :class="!user.managedUserId ? 'bg-accent text-white' : 'bg-white/5 text-white/60'"
+              class="px-4 py-2 rounded-full whitespace-nowrap text-sm font-medium"
+            >
+              Ele mesmo
+            </button>
+            <button
+              v-for="candidate in otherUsers(user)"
+              :key="candidate._id"
+              @click="updateManagedUser(user, candidate._id)"
+              :class="user.managedUserId === candidate._id ? 'bg-accent text-white' : 'bg-white/5 text-white/60'"
+              class="px-4 py-2 rounded-full whitespace-nowrap text-sm font-medium"
+            >
+              {{ candidate.name }}
+            </button>
+          </div>
+        </div>
       </article>
+    </section>
+
+    <section class="space-y-4">
+      <h2 class="text-lg font-bold">Vínculo de casal</h2>
+      <div class="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
+        <p class="text-sm text-white/50">Selecione os dois usuários que dividem gastos entre si.</p>
+        <div class="flex gap-2 overflow-x-auto pb-1">
+          <button
+            v-for="user in users"
+            :key="user._id"
+            @click="toggleCoupleSelection(user._id)"
+            :class="coupleSelection.includes(user._id) ? 'bg-accent text-white' : 'bg-white/5 text-white/60'"
+            class="px-4 py-2 rounded-full whitespace-nowrap text-sm font-medium"
+          >
+            {{ user.name }}
+          </button>
+        </div>
+
+        <p v-if="coupleErrorMessage" class="text-critical text-sm">{{ coupleErrorMessage }}</p>
+        <p v-if="coupleSuccessMessage" class="text-good text-sm">{{ coupleSuccessMessage }}</p>
+
+        <AppButton :loading="savingCouple" @click="saveCouple">
+          Vincular casal
+        </AppButton>
+      </div>
     </section>
   </div>
 </template>
@@ -171,6 +223,10 @@ const saving = ref(false);
 const errorMessage = ref('');
 const savingCard = ref(false);
 const cardErrorMessage = ref('');
+const coupleSelection = ref<string[]>([]);
+const savingCouple = ref(false);
+const coupleErrorMessage = ref('');
+const coupleSuccessMessage = ref('');
 const categoryTypes = [
   { label: 'Despesa', value: 'EXPENSE', activeClass: 'bg-critical text-white' },
   { label: 'Receita', value: 'INCOME', activeClass: 'bg-good text-white' },
@@ -332,6 +388,63 @@ async function updateUserRole(user: any, role: string) {
 
   await api.put(`/users/${user._id}`, { role });
   await loadData();
+}
+
+function otherUsers(user: any) {
+  return users.value.filter((candidate) => candidate._id !== user._id);
+}
+
+function householdLabel(user: any) {
+  if (!user.householdId) return '';
+
+  const partners = users.value.filter(
+    (candidate) => candidate._id !== user._id && candidate.householdId === user.householdId
+  );
+
+  if (!partners.length) return '';
+
+  return `Casal com ${partners.map((partner) => partner.name).join(', ')}`;
+}
+
+async function updateManagedUser(user: any, managedUserId: string) {
+  await api.put(`/users/${user._id}`, { managedUserId: managedUserId || null });
+  await loadData();
+}
+
+function toggleCoupleSelection(userId: string) {
+  if (coupleSelection.value.includes(userId)) {
+    coupleSelection.value = coupleSelection.value.filter((id) => id !== userId);
+    return;
+  }
+
+  if (coupleSelection.value.length >= 2) {
+    coupleSelection.value = [coupleSelection.value[1], userId];
+    return;
+  }
+
+  coupleSelection.value = [...coupleSelection.value, userId];
+}
+
+async function saveCouple() {
+  coupleErrorMessage.value = '';
+  coupleSuccessMessage.value = '';
+
+  if (coupleSelection.value.length !== 2) {
+    coupleErrorMessage.value = 'Selecione exatamente dois usuários.';
+    return;
+  }
+
+  try {
+    savingCouple.value = true;
+    await api.post('/users/household', { memberIds: coupleSelection.value });
+    coupleSuccessMessage.value = 'Casal vinculado com sucesso!';
+    coupleSelection.value = [];
+    await loadData();
+  } catch (error) {
+    coupleErrorMessage.value = 'Não foi possível vincular esse casal.';
+  } finally {
+    savingCouple.value = false;
+  }
 }
 
 onMounted(loadData);
