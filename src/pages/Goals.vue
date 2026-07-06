@@ -168,7 +168,18 @@
           </div>
 
           <div v-if="recurringForm.splitType === 'SHARED_50_50' || recurringForm.splitType === 'SHARED_CUSTOM'" class="pt-2 space-y-3">
-            <p class="text-sm text-white/50">Dividido com <span class="text-white font-medium">{{ partnerName }}</span></p>
+            <label class="text-xs font-semibold text-white/40 uppercase tracking-wide">Dividido com</label>
+            <div class="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              <button
+                v-for="partner in partners"
+                :key="partner._id"
+                @click="recurringForm.owedBy = partner._id"
+                :class="recurringForm.owedBy === partner._id ? 'bg-accent text-white' : 'bg-white/5 text-white/60'"
+                class="px-4 py-2 rounded-full whitespace-nowrap text-sm font-medium transition-colors"
+              >
+                {{ partner.name }}
+              </button>
+            </div>
             <AppInput
               v-if="recurringForm.splitType === 'SHARED_CUSTOM'"
               v-model="recurringForm.customSplitPercentage"
