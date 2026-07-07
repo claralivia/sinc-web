@@ -165,7 +165,7 @@ const form = ref({
 
 const filteredCategories = computed(() => categories.value.filter((category) => category.type === form.value.type));
 const partnerName = computed(() => partners.value.find((partner) => partner._id === form.value.partnerId)?.name || 'parceiro(a)');
-const showsPartnerSplit = computed(() => form.value.splitType === 'SHARED_50_50' || form.value.splitType === 'SHARED_CUSTOM');
+const showsPartnerSplit = computed(() => form.value.splitType === 'HERS' || form.value.splitType === 'SHARED_50_50' || form.value.splitType === 'SHARED_CUSTOM');
 
 const splitOptions = [
   { label: 'Só Meu', value: 'MINE' },

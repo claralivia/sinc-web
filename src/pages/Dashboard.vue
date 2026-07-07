@@ -22,6 +22,46 @@
       </GlassCard>
     </div>
 
+    <div class="grid grid-cols-2 gap-4">
+      <GlassCard class="border-white/10">
+        <p class="text-white/60 text-xs">Já desembolsamos</p>
+        <p class="font-bold">R$ {{ ((summary?.totals?.paidExpense || 0) / 100).toFixed(2) }}</p>
+      </GlassCard>
+      <GlassCard class="border-warning/20">
+        <p class="text-warning text-xs">Ainda vamos desembolsar</p>
+        <p class="font-bold">R$ {{ ((summary?.totals?.pendingExpense || 0) / 100).toFixed(2) }}</p>
+      </GlassCard>
+    </div>
+
+    <div class="bg-white/5 border border-white/10 rounded-2xl p-4" v-if="summary?.cardInvoices?.length">
+      <h3 class="text-sm font-semibold text-white/40 uppercase tracking-wide mb-3">Faturas do mês</h3>
+      <div class="space-y-3">
+        <div v-for="invoice in summary.cardInvoices" :key="invoice.cardId" class="flex items-center gap-3">
+          <span
+            class="w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0"
+            :style="{ backgroundColor: (invoice.cardColor || '#898781') + '26' }"
+          >
+            <img v-if="invoice.cardLogoUrl" :src="invoice.cardLogoUrl" class="w-4 h-4 rounded-full object-cover">
+            <span v-else>💳</span>
+          </span>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm truncate">{{ invoice.cardName || 'Cartão' }}</p>
+            <p v-if="invoice.dueDay" class="text-xs text-white/40">vence dia {{ invoice.dueDay }}</p>
+          </div>
+          <p class="text-sm font-bold shrink-0">R$ {{ (invoice.total / 100).toFixed(2) }}</p>
+          <span v-if="invoice.paid" class="text-good text-xs font-medium shrink-0">Paga ✓</span>
+          <button
+            v-else
+            :disabled="payingCardId === invoice.cardId"
+            @click="markInvoiceAsPaid(invoice.cardId, invoice.month)"
+            class="text-xs font-medium text-accent shrink-0 disabled:opacity-50"
+          >
+            {{ payingCardId === invoice.cardId ? 'Marcando...' : 'Marcar como paga' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <GlassCard v-if="summary?.sharedDebt?.length">
       <p class="text-white/60 text-sm mb-2">Saldo entre vocês</p>
       <div v-for="debt in summary.sharedDebt" :key="debt.userId" class="flex items-center justify-between">
@@ -84,15 +124,19 @@ import PeriodFilter from '@/components/ui/PeriodFilter.vue';
 
 const goals = ref<any[]>([]);
 const currentRange = ref({ startDate: '', endDate: '' });
+const payingCardId = ref('');
 
 const summary = ref<any>({
   totals: {
     totalIncome: 0,
     totalExpense: 0,
-    balance: 0
+    balance: 0,
+    paidExpense: 0,
+    pendingExpense: 0
   },
   sharedDebt: [],
-  expensesByCategory: []
+  expensesByCategory: [],
+  cardInvoices: []
 });
 
 const chartSeries = computed(() => {
@@ -140,6 +184,18 @@ async function fetchDashboard() {
     summary.value = data;
   } catch (error) {
     console.error(error);
+  }
+}
+
+async function markInvoiceAsPaid(cardId: string, month: string) {
+  payingCardId.value = cardId;
+  try {
+    await api.post(`/cards/${cardId}/invoices/pay`, { month });
+    await fetchDashboard();
+  } catch (error) {
+    console.error(error);
+  } finally {
+    payingCardId.value = '';
   }
 }
 

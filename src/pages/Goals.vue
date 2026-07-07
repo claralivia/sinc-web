@@ -167,7 +167,7 @@
             </button>
           </div>
 
-          <div v-if="recurringForm.splitType === 'SHARED_50_50' || recurringForm.splitType === 'SHARED_CUSTOM'" class="pt-2 space-y-3">
+          <div v-if="recurringForm.splitType === 'HERS' || recurringForm.splitType === 'SHARED_50_50' || recurringForm.splitType === 'SHARED_CUSTOM'" class="pt-2 space-y-3">
             <label class="text-xs font-semibold text-white/40 uppercase tracking-wide">Dividido com</label>
             <div class="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
               <button
@@ -492,7 +492,7 @@ async function saveRecurring() {
     return;
   }
 
-  const isShared = recurringForm.value.splitType === 'SHARED_50_50' || recurringForm.value.splitType === 'SHARED_CUSTOM';
+  const isShared = recurringForm.value.splitType === 'HERS' || recurringForm.value.splitType === 'SHARED_50_50' || recurringForm.value.splitType === 'SHARED_CUSTOM';
 
   const payload = {
     description: recurringForm.value.description,
