@@ -18,30 +18,55 @@
         Nenhuma transação encontrada.
       </div>
 
-      <div class="space-y-4">
-        <div v-for="t in transactions" :key="t?._id" class="bg-white/5 p-4 rounded-2xl border border-white/10 flex items-center justify-between gap-3">
-          <div class="flex items-center gap-3 min-w-0">
-            <span
-              class="w-9 h-9 rounded-full flex items-center justify-center text-base shrink-0"
-              :style="{ backgroundColor: (t?.categoryId?.color || '#898781') + '26' }"
-            >
-              {{ t?.categoryId?.icon || '❔' }}
-            </span>
-            <div class="min-w-0">
-              <p class="font-bold truncate">{{ t?.description || 'Sem descrição' }}</p>
-              <p class="text-xs text-white/50 truncate">{{ t?.date ? formatDate(t.date) : 'Data inválida' }} · {{ t?.categoryId?.name || 'Sem categoria' }}</p>
-              <p class="text-xs text-white/40 mt-0.5 truncate">{{ t?.paidBy?.name || 'Alguém' }} · {{ splitLabel(t) }}</p>
+      <div class="space-y-3">
+        <div v-for="t in transactions" :key="t?._id" class="bg-white/5 rounded-2xl border border-white/10 overflow-hidden">
+          <button type="button" class="w-full flex items-center justify-between gap-3 p-4 text-left" @click="toggleExpanded(t._id)">
+            <div class="flex items-center gap-3 min-w-0">
+              <span
+                class="w-9 h-9 rounded-full flex items-center justify-center text-base shrink-0"
+                :style="{ backgroundColor: (t?.categoryId?.color || '#898781') + '26' }"
+              >
+                {{ t?.categoryId?.icon || '❔' }}
+              </span>
+              <div class="min-w-0">
+                <p class="font-bold" :class="expandedId === t?._id ? 'whitespace-normal wrap-break-word' : 'truncate'">{{ t?.description || 'Sem descrição' }}</p>
+                <p class="text-xs text-white/50 truncate">{{ t?.date ? formatDate(t.date) : 'Data inválida' }} · {{ t?.categoryId?.name || 'Sem categoria' }}</p>
+              </div>
             </div>
-          </div>
-          <div class="flex items-center gap-3 shrink-0">
-            <div :class="t?.type === 'INCOME' ? 'text-good' : 'text-critical'" class="font-bold text-right">
-              {{ t?.type === 'INCOME' ? '+' : '-' }} R$ {{ ((t?.amount || 0) / 100).toFixed(2) }}
-            </div>
-            <button @click="deleteTransaction(t._id)" class="p-2 rounded-full bg-critical/10 text-critical shrink-0">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.9 12.1A2 2 0 0116.1 21H7.9a2 2 0 01-2-1.9L5 7m5 4v6m4-6v6M9 7V4h6v3m-8 0h10"></path>
+            <div class="flex items-center gap-2 shrink-0">
+              <div :class="t?.type === 'INCOME' ? 'text-good' : 'text-critical'" class="font-bold text-right">
+                {{ t?.type === 'INCOME' ? '+' : '-' }} R$ {{ ((t?.amount || 0) / 100).toFixed(2) }}
+              </div>
+              <svg
+                class="w-4 h-4 text-white/40 transition-transform shrink-0"
+                :class="expandedId === t?._id ? 'rotate-180' : ''"
+                fill="none" stroke="currentColor" viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
               </svg>
-            </button>
+            </div>
+          </button>
+
+          <div v-if="expandedId === t?._id" class="px-4 pb-4 space-y-3 border-t border-white/10 pt-3">
+            <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
+              <p class="text-white/40">Pago por</p>
+              <p class="text-right">{{ t?.paidBy?.name || 'Alguém' }}</p>
+
+              <p class="text-white/40">Pagamento</p>
+              <p class="text-right">{{ paymentMethodLabel(t?.paymentMethod) }}<span v-if="t?.cardId?.name"> · {{ t.cardId.name }}</span></p>
+
+              <p class="text-white/40">Divisão</p>
+              <p class="text-right">{{ splitLabel(t) || 'Só meu' }}</p>
+            </div>
+
+            <div class="flex gap-2 pt-1">
+              <button @click="editTransaction(t._id)" class="flex-1 py-3 rounded-2xl bg-white/10 font-medium text-sm">
+                Editar
+              </button>
+              <button @click="deleteTransaction(t._id)" class="flex-1 py-3 rounded-2xl bg-critical/10 text-critical font-medium text-sm">
+                Excluir
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -87,6 +112,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import api from '@/lib/api';
 import PeriodFilter from '@/components/ui/PeriodFilter.vue';
 
@@ -101,6 +127,21 @@ interface Transaction {
   owedBy?: { name: string };
   owedAmount?: number;
   splitType?: 'MINE' | 'HERS' | 'SHARED_50_50' | 'SHARED_CUSTOM';
+  paymentMethod?: 'PIX' | 'CREDIT_CARD' | 'DEBIT' | 'CASH';
+  cardId?: { name: string };
+}
+
+const router = useRouter();
+
+const paymentMethodLabels: Record<string, string> = {
+  PIX: 'Pix',
+  CREDIT_CARD: 'Cartão de Crédito',
+  DEBIT: 'Cartão de Débito',
+  CASH: 'Dinheiro',
+};
+
+function paymentMethodLabel(method?: string) {
+  return (method && paymentMethodLabels[method]) || 'Não informado';
 }
 
 const splitLabels: Record<string, string> = {
@@ -141,6 +182,15 @@ const activeTab = ref<'history' | 'installments'>('history');
 const transactions = ref<Transaction[]>([]);
 const installments = ref<InstallmentGroup[]>([]);
 const currentRange = ref({ startDate: '', endDate: '' });
+const expandedId = ref<string | null>(null);
+
+function toggleExpanded(id: string) {
+  expandedId.value = expandedId.value === id ? null : id;
+}
+
+function editTransaction(id: string) {
+  router.push(`/transacoes/${id}/editar`);
+}
 
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString('pt-BR');
@@ -183,6 +233,7 @@ function onPeriodChange(range: { startDate: string; endDate: string }) {
 
 async function deleteTransaction(id: string) {
   await api.delete(`/transactions/${id}`);
+  if (expandedId.value === id) expandedId.value = null;
   await loadTransactions();
 }
 

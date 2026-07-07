@@ -21,6 +21,7 @@ const router = createRouter({
       children: [
         { path: '', component: Dashboard },
         { path: 'nova-transacao', component: NewTransaction },
+        { path: 'transacoes/:id/editar', component: NewTransaction },
         { path: 'transacoes', component: Transactions },
         { path: 'metas', component: Goals },
         { path: 'admin', component: Admin, meta: { requiresAdmin: true } }

@@ -1,13 +1,13 @@
 <template>
   <div class="pt-6 space-y-6">
     <div class="flex items-center justify-between">
-      <h2 class="text-xl font-bold">Novo Lançamento</h2>
+      <h2 class="text-xl font-bold">{{ isEditing ? 'Editar Lançamento' : 'Novo Lançamento' }}</h2>
       <button @click="$router.back()" class="text-white/50 hover:text-white transition-colors">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
 
-    <div class="bg-accent/10 border border-accent/20 rounded-2xl p-4 space-y-3">
+    <div v-if="!isEditing" class="bg-accent/10 border border-accent/20 rounded-2xl p-4 space-y-3">
       <p class="text-xs font-semibold text-accent uppercase tracking-wide">✨ Preencher com IA</p>
       <div class="flex gap-2">
         <input
@@ -119,14 +119,14 @@
           </div>
         </div>
 
-        <AppInput v-model="form.totalInstallments" type="number" label="Parcelas" placeholder="1" />
+        <AppInput v-if="!isEditing" v-model="form.totalInstallments" type="number" label="Parcelas" placeholder="1" />
       </div>
     </div>
 
     <p v-if="errorMessage" class="text-critical text-sm text-center">{{ errorMessage }}</p>
 
     <AppButton :loading="saving" @click="save">
-      Confirmar Lançamento
+      {{ isEditing ? 'Salvar Alterações' : 'Confirmar Lançamento' }}
     </AppButton>
   </div>
 </template>
@@ -134,11 +134,14 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from 'vue';
 import api from '@/lib/api';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import AppInput from '@/components/ui/AppInput.vue';
 import AppButton from '@/components/ui/AppButton.vue';
 
 const router = useRouter();
+const route = useRoute();
+const transactionId = computed(() => route.params.id as string | undefined);
+const isEditing = computed(() => Boolean(transactionId.value));
 const textoIA = ref('');
 const categories = ref<any[]>([]);
 const partners = ref<any[]>([]);
@@ -230,6 +233,35 @@ async function loadCards() {
   }
 }
 
+function formatDateForInput(dateString: string) {
+  return new Date(dateString).toISOString().split('T')[0];
+}
+
+async function loadTransactionForEdit() {
+  if (!transactionId.value) return;
+
+  try {
+    const { data } = await api.get(`/transactions/${transactionId.value}`);
+
+    form.value.description = data.description || '';
+    form.value.amount = ((data.amount || 0) / 100).toFixed(2);
+    form.value.type = data.type;
+    form.value.categoryId = data.categoryId?._id || form.value.categoryId;
+    form.value.splitType = data.splitType || 'MINE';
+    form.value.paymentMethod = data.paymentMethod || 'PIX';
+    form.value.partnerId = data.owedBy?._id || form.value.partnerId;
+    form.value.customSplitPercentage = data.customSplitPercentage
+      ? String(data.customSplitPercentage)
+      : data.amount
+        ? String(Math.round(((data.owedAmount || 0) / data.amount) * 100))
+        : '50';
+    form.value.cardId = data.cardId?._id || form.value.cardId;
+    form.value.date = data.date ? formatDateForInput(data.date) : form.value.date;
+  } catch (error) {
+    errorMessage.value = 'Não foi possível carregar a transação.';
+  }
+}
+
 async function processarIA() {
   if (!textoIA.value) return;
   try {
@@ -254,26 +286,34 @@ async function save() {
     return;
   }
 
+  const payload = {
+    description: form.value.description,
+    amount,
+    type: form.value.type,
+    date: new Date(`${form.value.date}T00:00:00`),
+    categoryId: form.value.categoryId,
+    splitType: form.value.splitType,
+    paymentMethod: form.value.paymentMethod,
+    ...(showsPartnerSplit.value && form.value.partnerId ? { partnerId: form.value.partnerId } : {}),
+    ...(form.value.splitType === 'SHARED_CUSTOM' ? { customSplitPercentage: Number(form.value.customSplitPercentage) } : {}),
+    ...(form.value.paymentMethod === 'CREDIT_CARD' && form.value.cardId ? { cardId: form.value.cardId } : {})
+  };
+
   try {
     saving.value = true;
     errorMessage.value = '';
 
-    await api.post('/transactions', {
-      description: form.value.description,
-      amount,
-      type: form.value.type,
-      date: new Date(`${form.value.date}T00:00:00`),
-      categoryId: form.value.categoryId,
-      splitType: form.value.splitType,
-      paymentMethod: form.value.paymentMethod,
-      isRecurring: false,
-      ...(showsPartnerSplit.value && form.value.partnerId ? { partnerId: form.value.partnerId } : {}),
-      ...(form.value.splitType === 'SHARED_CUSTOM' ? { customSplitPercentage: Number(form.value.customSplitPercentage) } : {}),
-      ...(form.value.paymentMethod === 'CREDIT_CARD' && Number(form.value.totalInstallments) > 1
-        ? { totalInstallments: Number(form.value.totalInstallments) }
-        : {}),
-      ...(form.value.paymentMethod === 'CREDIT_CARD' && form.value.cardId ? { cardId: form.value.cardId } : {})
-    });
+    if (isEditing.value) {
+      await api.put(`/transactions/${transactionId.value}`, payload);
+    } else {
+      await api.post('/transactions', {
+        ...payload,
+        isRecurring: false,
+        ...(form.value.paymentMethod === 'CREDIT_CARD' && Number(form.value.totalInstallments) > 1
+          ? { totalInstallments: Number(form.value.totalInstallments) }
+          : {}),
+      });
+    }
     router.push('/transacoes');
   } catch (error) {
     errorMessage.value = 'Não foi possível salvar a transação.';
@@ -282,10 +322,9 @@ async function save() {
   }
 }
 
-onMounted(() => {
-  loadCategories();
-  loadPartners();
-  loadCards();
+onMounted(async () => {
+  await Promise.all([loadCategories(), loadPartners(), loadCards()]);
+  await loadTransactionForEdit();
 });
 
 watch(() => form.value.type, () => {
